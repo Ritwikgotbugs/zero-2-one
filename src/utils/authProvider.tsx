@@ -1,26 +1,59 @@
-import { AuthComponent } from "@/components/constants/auth/login";
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import React from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter, usePathname } from "next/navigation";
 
 export interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = React.useState<any>(null);
-  const [verified, setverified] = React.useState<boolean>(false); // for testing
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  return (
-    <div className={verified ? "" : "relative"}>
-      {!verified && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center">
-          <AuthComponent/>
-        </div>
-      )}
-      
-      <div className={verified ? "" : "pointer-events-none opacity-80 blur-xs"}>
-        {children}
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSession = async () => {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (isMounted) {
+        const isLoggedIn = !!session && !error;
+        setIsAuthenticated(isLoggedIn);
+
+        if (!isLoggedIn && pathname !== "/auth/login") {
+          router.push("/auth/login");
+        }
+      }
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const isLoggedIn = !!session;
+      setIsAuthenticated(isLoggedIn);
+
+      if (isLoggedIn) {
+        router.push("/");
+      } else if (pathname !== "/auth/login") {
+        router.push("/auth/login");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [pathname]);
+
+  if (isAuthenticated === null) {
+    return <div>Loading...</div>;
+  }
+
+  return <>{children}</>;
 };
