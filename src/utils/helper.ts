@@ -37,3 +37,11 @@ export const GetUserSession = async () => {
   }
   return data.session;
 };
+
+export const GetUser = async () => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    throw error;
+  }
+  return data.user;
+};

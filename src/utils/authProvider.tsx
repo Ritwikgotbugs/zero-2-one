@@ -37,12 +37,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const isLoggedIn = !!session;
       setIsAuthenticated(isLoggedIn);
-
-      if (isLoggedIn) {
-        router.push("/");
-      } else if (pathname !== "/auth/login") {
-        router.push("/auth/login");
-      }
     });
 
     return () => {
